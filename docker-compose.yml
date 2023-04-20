@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  snipedb:
+    image: mariadb
+    env_file:
+      - ./snipe.env
+    volumes:
+      - snipesql-vol:/var/lib/mysql
+    command: mysqld --sql_mode="" --character-set-server=utf8 --collation-server=utf8_slovenian_ci --init-connect='SET NAMES UTF8;' --innodb-flush-log-at-trx-commit=0
+    restart: on-failure
+    expose:
+      - 3306
+
+  snipe-it:
+    image: snipe/snipe-it:latest
+    env_file:
+      - ./snipe.env
+    ports:
+      - 3051:80
+    depends_on:
+      - snipedb
+
+volumes:
+  snipesql-vol:
