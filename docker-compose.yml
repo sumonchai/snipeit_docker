@@ -20,6 +20,28 @@ services:
       - 3051:80
     depends_on:
       - snipedb
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.snipe-it.rule=Host(`aisexam.localhost`)"
+      - "traefik.http.routers.snipe-it.entrypoints=web"
+
+  traefik:
+    image: traefik
+    ports:
+      - 80:80
+      - 8080:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      #- ./traefik/letsencrypt:/letsencrypt
+    command:  
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      #- --entrypoints.websecure.address=:443
+      #- --certificatesresolvers.mysmartserver.acme.dnschallenge=true
+      #- --certificatesresolvers.mysmartserver.acme.dnschallenge.provider=provider
+    restart: always
 
 volumes:
   snipesql-vol:
