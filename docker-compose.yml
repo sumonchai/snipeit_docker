@@ -43,5 +43,22 @@ services:
       #- --certificatesresolvers.mysmartserver.acme.dnschallenge.provider=provider
     restart: always
 
+  redis:
+    image: redis:latest
+    env_file:
+      - ./snipe.env
+    ports:
+      - 6379:6379
+    restart: always
+
+  prometheus:
+    image: my-prometheus
+    ports:
+      - 9000:9090
+    volumes:
+      - prometheus-data:/prometheus
+    command: --web.enable-lifecycle  --config.file=/etc/prometheus/prometheus.yml
+
 volumes:
+  prometheus-data:
   snipesql-vol:
