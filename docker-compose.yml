@@ -22,13 +22,19 @@ services:
       - snipedb
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.snipe-it.rule=Host(`aisexam.localhost`)"
-      - "traefik.http.routers.snipe-it.entrypoints=web"
+      - "traefik.http.routers.snipe-it.entrypoints=websecure"
+      - "traefik.http.routers.snipe-it.tls=true"
+      - "traefik.http.middlewares.force-secure.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.force-secure.redirectscheme.permanent=true"
+      - "traefik.http.routers.snipe-it-insecure.entrypoints=web"
+      - "traefik.http.routers.snipe-it-insecure.rule=Host(`aisexam.localhost`)"
+      - "traefik.http.routers.snipe-it-insecure.middlewares=force-secure"
 
   traefik:
     image: traefik
     ports:
       - 80:80
+      - 443:443
       - 8080:8080
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -38,9 +44,9 @@ services:
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
-      #- --entrypoints.websecure.address=:443
-      #- --certificatesresolvers.mysmartserver.acme.dnschallenge=true
-      #- --certificatesresolvers.mysmartserver.acme.dnschallenge.provider=provider
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.aisexam.acme.httpchallenge=true
+      - --certificatesresolvers.aisexam.acme.httpchallenge.entrypoint=web
     restart: always
 
   redis:
