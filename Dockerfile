@@ -1,3 +1,5 @@
-FROM prom/prometheus
-ADD prometheus.yml /etc/prometheus
-ADD alert.yml /etc/prometheus
+FROM prom/prometheus-linux-arm64
+
+COPY prometheus.yml /etc/prometheus
+
+COPY alert.yml /etc/prometheus

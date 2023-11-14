@@ -7,29 +7,23 @@ services:
       - ./snipe.env
     volumes:
       - snipesql-vol:/var/lib/mysql
-    command: mysqld --sql_mode="" --character-set-server=utf8 --collation-server=utf8_slovenian_ci --init-connect='SET NAMES UTF8;' --innodb-flush-log-at-trx-commit=0
     restart: on-failure
     expose:
       - 3306
+  redis:
+    image: redis:latest
+    restart: always
 
   snipe-it:
     image: snipe/snipe-it:latest
     env_file:
       - ./snipe.env
-    ports:
-      - 3051:80
     depends_on:
       - snipedb
+      - redis
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.snipe-it.entrypoints=websecure"
-      - "traefik.http.routers.snipe-it.tls=true"
-      - "traefik.http.middlewares.force-secure.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.force-secure.redirectscheme.permanent=true"
-      - "traefik.http.routers.snipe-it-insecure.entrypoints=web"
-      - "traefik.http.routers.snipe-it-insecure.rule=Host(`aisexam.localhost`)"
-      - "traefik.http.routers.snipe-it-insecure.middlewares=force-secure"
-
+      - "traefik.http.routers.snipe-it.rule=Host(`snipeit.docker.localhost`)"
+      
   traefik:
     image: traefik
     ports:
@@ -42,37 +36,28 @@ services:
     command:  
       - --api.insecure=true
       - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      - --certificatesresolvers.aisexam.acme.httpchallenge=true
-      - --certificatesresolvers.aisexam.acme.httpchallenge.entrypoint=web
+      #- --entrypoints.web.address=:80
+      #- --entrypoints.websecure.address=:443
+      #- --certificatesresolvers.aisexam.acme.httpchallenge=true
+      #- --certificatesresolvers.aisexam.acme.httpchallenge.entrypoint=web
       - --metrics.prometheus=true
       - --metrics.prometheus.addEntryPointsLabels=true
       - --metrics.prometheus.addRoutersLabels=true
       - --metrics.prometheus.addServicesLabels=true
     restart: always
 
-  redis:
-    image: redis:latest
-    env_file:
-      - ./snipe.env
-    ports:
-      - 6379:6379
-    restart: always
-
   prometheus:
     image: my-prometheus
-    ports:
-      - 9000:9090
     volumes:
-      - prometheus-data:/prometheus
+     - prometheus-data:/prometheus
     command: --web.enable-lifecycle  --config.file=/etc/prometheus/prometheus.yml
+    labels:
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.docker.localhost`)"
 
   grafana:
     image: grafana/grafana-oss
-    ports:
-    - 3000:3000
+    labels:
+      - "traefik.http.routers.grafana.rule=Host(`grafana.docker.localhost`)"
     
 volumes:
   prometheus-data:
