@@ -1,64 +1,37 @@
-version: '3.8'
-
+version: "3"
 services:
-  snipedb:
-    image: mariadb
-    env_file:
-      - ./snipe.env
-    volumes:
-      - snipesql-vol:/var/lib/mysql
-    restart: on-failure
-    expose:
-      - 3306
-  redis:
-    image: redis:latest
+  mysql:
+    image: mariadb:10.11
+    container_name: snipeit-db
     restart: always
+    volumes:
+      - ./snipe_mysql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=snipeit
+      - MYSQL_USER=snipeit
+      - MYSQL_PASSWORD=snipeit
+      - MYSQL_DATABASE=snipeit_db
+      - TZ=Asia/Bangkok
+  snipeit:
+    image: linuxserver/snipe-it:latest
+    container_name: snipe-it
+    restart: always
+    healthcheck:
+      test: curl -f http://localhost:80/ || exit 1
 
-  snipe-it:
-    image: snipe/snipe-it:latest
-    env_file:
-      - ./snipe.env
     depends_on:
-      - snipedb
-      - redis
-    labels:
-      - "traefik.http.routers.snipe-it.rule=Host(`snipeit.docker.localhost`)"
-      
-  traefik:
-    image: traefik
+      - mysql
+    volumes:
+      - ./snipe_it:/config
+    environment:
+      - APP_URL=http://localhost:8080
+      - MYSQL_PORT_3306_TCP_ADDR=mysql
+      - MYSQL_PORT_3306_TCP_PORT=3306
+      - MYSQL_DATABASE=snipeit_db
+      - MYSQL_USER=snipeit
+      - MYSQL_PASSWORD=snipeit
+      - TZ=Asia/Bangkok
+      - PGID=1000
+      - PUID=1000
     ports:
-      - 80:80
-      - 443:443
-      - 8080:8080
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      #- ./traefik/letsencrypt:/letsencrypt
-    command:  
-      - --api.insecure=true
-      - --providers.docker=true
-      #- --entrypoints.web.address=:80
-      #- --entrypoints.websecure.address=:443
-      #- --certificatesresolvers.aisexam.acme.httpchallenge=true
-      #- --certificatesresolvers.aisexam.acme.httpchallenge.entrypoint=web
-      - --metrics.prometheus=true
-      - --metrics.prometheus.addEntryPointsLabels=true
-      - --metrics.prometheus.addRoutersLabels=true
-      - --metrics.prometheus.addServicesLabels=true
-    restart: always
-
-  prometheus:
-    image: my-prometheus
-    volumes:
-     - prometheus-data:/prometheus
-    command: --web.enable-lifecycle  --config.file=/etc/prometheus/prometheus.yml
-    labels:
-      - "traefik.http.routers.prometheus.rule=Host(`prometheus.docker.localhost`)"
-
-  grafana:
-    image: grafana/grafana-oss
-    labels:
-      - "traefik.http.routers.grafana.rule=Host(`grafana.docker.localhost`)"
-    
-volumes:
-  prometheus-data:
-  snipesql-vol:
+      - "8080:80"
